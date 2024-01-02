@@ -9,6 +9,10 @@
 
 //----------------------------------------------------------------------------------
 
+extern int SizeofRemaining;
+
+//----------------------------------------------------------------------------------
+
 void Init_DataPath(tDataPath* root){
     strcpy(root->folder,"root");
     root->next=NULL;
@@ -23,7 +27,7 @@ void Add_DataPath(tDataPath *curr_Path){
     curr_Path=curr_Path->next;
 }
 
-void OPER_LoadDump(){
+void OPER_LoadDump(){     //Load ().dump
     FILE *fp;
     char LoadFile[15];
 
@@ -36,4 +40,41 @@ void OPER_LoadDump(){
     }else{
         printf("Load Success.\n");
     }
+}
+
+void OPER_put(tDataTree *head,char target[]){
+    FILE *fp;
+    char buffer[1000];
+    int j=0;
+    fp = fopen(target, "r+");
+    if (fp == NULL) {
+        printf("failed to open file '%s'\n",target);
+        return;
+    }
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        printf("%s", buffer);
+        printf("'%d'",j++);
+    }
+    printf("\n");
+
+    // tDataTree *temp=head;
+    // tDataTree *new=(tDataTree*)malloc(sizeof(tDataTree));
+
+    
+}
+
+void OPER_cat(tDataTree *head,char target[]){
+    FILE *fp;
+    char buffer[1000];
+
+    /*
+        tDtatTree裡去找
+    */
+
+    printf("\n");
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        printf("%s", buffer);
+    }
+    printf("\n");
 }

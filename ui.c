@@ -13,7 +13,7 @@ char* UI_SelectFunc_Init(int *SizeOfPartition){
 
     printf("options:\n");
     printf("  1.loads from file\n");
-    printf("  2.create new partition in memery\n");
+    printf("  2.create new partition in memory\n");
     scanf("%d",&select);
 
     if(select==1){
@@ -21,6 +21,7 @@ char* UI_SelectFunc_Init(int *SizeOfPartition){
     }else if(select==2){
         printf("Input size of a new partition (example 1024000):");
         scanf("%d",SizeOfPartition);
+        getchar();
         printf("partition size = %d\n\n",*SizeOfPartition);
         
         char *ptr_Partition=calloc(*SizeOfPartition,sizeof(char));
@@ -33,26 +34,30 @@ char* UI_SelectFunc_Init(int *SizeOfPartition){
     }
 }
 
-void UI_SelectFunc_Oper(char *oper,tDataPath *root,tDataPath *curr_Path){
+void UI_SelectFunc_Oper(char oper[][10],tDataPath *root,tDataPath *curr_Path){
     int i=0;
     char InputString[20];
     tDataPath *temp=root;
     
-    // //產生路徑
-    // printf("/");                                            
-    // while(curr_Path!=root && temp!=curr_Path){
-    //     temp=temp->next;
-    //     printf("%s/",temp->folder);
-    // }
-    // printf(" $ ");
+    //產生路徑
+    printf("/");                                            
+    while(curr_Path!=root && temp!=curr_Path){
+        temp=temp->next;
+        printf("%s/",temp->folder);
+    }
+    printf(" $ ");
 
     //讀取輸入轉換為運算及引數
-    scanf("%s",InputString);
-    char *token = strtok(InputString," ");        //使用空格切割
+    fgets(InputString, sizeof(InputString), stdin);
+    char *token = strtok(InputString," ");           //使用空格切割
 
-    while (token != NULL) {
-        strcpy(oper[i++],token);
-        printf("%s\n", token);
+    while (token != NULL) {                          //切割&處理字符
+        if(i<2){
+            if (token[strlen(token) - 1] == '\n') {
+                token[strlen(token) - 1] = '\0';
+            }
+            strcpy(oper[i++],token);
+        }
         token = strtok(NULL," ");
     }
 }
