@@ -11,27 +11,29 @@
 char* UI_SelectFunc_Init(int *SizeOfPartition){
     int select;
 
-    printf("options:\n");
-    printf("  1.loads from file\n");
-    printf("  2.create new partition in memory\n");
-    scanf("%d",&select);
+    do{
+        printf("options:\n");
+        printf("  1.loads from file\n");
+        printf("  2.create new partition in memory\n");
+        scanf("%d",&select);
 
-    if(select==1){
-        OPER_LoadDump();
-    }else if(select==2){
-        printf("Input size of a new partition (example 1024000):");
-        scanf("%d",SizeOfPartition);
-        getchar();
-        printf("partition size = %d\n\n",*SizeOfPartition);
-        
-        char *ptr_Partition=calloc(*SizeOfPartition,sizeof(char));
-        if (ptr_Partition!=NULL){
-            printf("Make new patition successful !\n");
-            return ptr_Partition;
-        }else{
-            printf("Make new patition failed !\n");
+        if(select==1){
+            OPER_LoadDump();
+        }else if(select==2){
+            printf("Input size of a new partition (example 1024000):");
+            scanf("%d",SizeOfPartition);
+            getchar();
+            printf("partition size = %d\n\n",*SizeOfPartition);
+            
+            char *ptr_Partition=calloc(*SizeOfPartition,sizeof(char));
+            if (ptr_Partition!=NULL){
+                printf("Make new patition successful !\n");
+                return ptr_Partition;
+            }else{
+                printf("Make new patition failed !\n");
+            }
         }
-    }
+    }while(!(select==1||select==2));
 }
 
 void UI_SelectFunc_Oper(char oper[][10],tDataPath *root,tDataPath *curr_Path){
@@ -40,7 +42,7 @@ void UI_SelectFunc_Oper(char oper[][10],tDataPath *root,tDataPath *curr_Path){
     tDataPath *temp=root;
     
     //產生路徑
-    printf("/");                                            
+    printf("\x1B[0m""/");                                            
     while(curr_Path!=root && temp!=curr_Path){
         temp=temp->next;
         printf("%s/",temp->folder);

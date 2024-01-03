@@ -13,10 +13,9 @@ void main() {
     char *ptr_Partition;              //空間指標
     char oper[2][10];                 //輸入command轉換運算及引數
     
-    tDataPath *root=(tDataPath*)malloc(sizeof(tDataPath));   //路徑暫存
+    tDataPath *root=Create_Init_DataPath();   //路徑暫存
     tDataPath *curr_Path=root;
-    Init_DataPath(root);                                     //初始化
-    tDataTree *head=NULL;                                    //dump管理
+    tDataHead *head=Create_Init_DataHead();   //dump管理
 
     //------------------------------------------------------------------
 
@@ -34,13 +33,13 @@ void main() {
         // printf("0:%d\n",!strcmp("ls",oper[0]));
 
         if(!strcmp("ls",oper[0])){
-            printf("==ls\n");
+            OPER_ls(head);
         }else if(!strcmp("cd",oper[0])){
             printf("==cd\n");
         }else if(!strcmp("rm",oper[0])){
             printf("==rm\n");
         }else if(!strcmp("mkdir",oper[0])){
-            printf("==mkdir\n");
+            OPER_mkdir(head,oper[1]);
         }else if(!strcmp("rmdir",oper[0])){
             printf("==rmdir\n");
         }else if(!strcmp("put",oper[0])){
@@ -48,7 +47,7 @@ void main() {
         }else if(!strcmp("get",oper[0])){
             printf("==get\n");
         }else if(!strcmp("cat",oper[0])){
-            printf("==cat\n");
+            OPER_cat(head, oper[1]);
         }else if(!strcmp("status",oper[0])){
             printf("==status\n");
         }else if(!strcmp("help",oper[0])){
@@ -58,7 +57,7 @@ void main() {
         }else{
             printf("no such operation \n");
         }
-        
+        // printf("\nSizeofRemaining: %d\n",SizeofRemaining);
     } 
  
 }
