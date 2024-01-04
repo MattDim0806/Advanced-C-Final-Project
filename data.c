@@ -13,31 +13,36 @@ extern int SizeofRemaining;
 
 //----------------------------------------------------------------------------------
 
-tDataPath* Create_Init_DataPath() {
+tDataPath* Create_Init_DataPath(tDataHead *head) {
     tDataPath* root = (tDataPath*)malloc(sizeof(tDataPath));
-    strcpy(root->folder, "root");
+    strcpy(root->folder,"root");
     root->next = NULL;
     root->prev = NULL;
+    root->Head=head;
 
-    SizeofRemaining -= sizeof(tDataPath);
     return root;
 }
 
-tDataHead* Create_Init_DataHead() {
+tDataHead* Create_Init_DataHead(char Name[]) {
     tDataHead* head = (tDataHead*)malloc(sizeof(tDataHead));
+    strcpy(head->Name,Name);
     head->next = NULL;
 
     SizeofRemaining -= sizeof(tDataHead);
     return head;
 }
 
-void Add_DataPath(tDataPath* curr_Path) {
-    char i[5];
+void Add_DataPath(tDataPath* curr_Path,char target[],tDataHead *head) {
     tDataPath* new_path = (tDataPath*)malloc(sizeof(tDataPath));
 
+    strcpy(new_path->folder,target);
     curr_Path->next = new_path;
     new_path->prev = curr_Path;
-    curr_Path = curr_Path->next;
+    new_path->Head=head;
+}
+
+void Del_DataPath(tDataPath *curr_Path){
+    curr_Path->prev->next=NULL;
 }
 
 void OPER_LoadDump() {     //Load ().dump
@@ -61,7 +66,6 @@ void OPER_ls(tDataHead* head) {
         printf("\n");
         return;
     }
-
     tDataTree* temp = head->next;
 
     while (temp != NULL) {
@@ -69,7 +73,7 @@ void OPER_ls(tDataHead* head) {
             printf("\x1B[0;34m""%s ", temp->FileName);
         }
         else {
-            printf("%s ", temp->FileName);
+            printf("\x1B[0m""%s ", temp->FileName);
         }
 
         if (temp->Right == NULL) {
@@ -80,6 +84,43 @@ void OPER_ls(tDataHead* head) {
     printf("\n");
 }
 
+int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path){
+    int exit=0;
+    tDataTree *temp;
+    tDataHead *head=curr_Path->Head;
+
+    
+    if(!strcmp(target,"..")){             //回上層
+        if(!strcmp(head->Name,"root")){   //已在root
+            printf("already in the root\n");
+        }else{
+            Del_DataPath(curr_Path);printf("3\n");
+            return 0;                     //0表示路徑往上走
+        }
+    }else{                                //往下層
+        if (head->next != NULL) {
+            temp = head->next;
+            while(1){
+                if((!strcmp(temp->FileName,target)) && temp->folder==1){   //尋找子目錄 
+                    exit=1;
+                    break;
+                }
+                if(temp->Right!=NULL){                                     //非空，繼續搜尋
+                    temp=temp->Right;
+                }else{
+                    break;
+                }
+            }
+        }
+        if(exit==1){                                             //存在子目錄
+            Add_DataPath(curr_Path,temp->FileName,temp->Left);   //添加路徑               
+            return 1;                                            //1表示路徑往下走
+        }
+    }
+    printf("Folder does not exist !\n");
+    return -1;
+}
+
 void OPER_mkdir(tDataHead *head,char target[]){
     tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree));
     SizeofRemaining -= sizeof(tDataTree);
@@ -87,13 +128,14 @@ void OPER_mkdir(tDataHead *head,char target[]){
     strcpy(new->FileName, target);
     new->content = NULL;
     new->folder = 1;
-    new->Left = NULL;
+    new->Left = Create_Init_DataHead(target); 
+    
     new->Right = NULL;
     new->size = 0;
 
     if (head->next == NULL) {
+        new->parent = NULL;
         head->next = new;
-        head->next->parent = NULL;
     }
     else {
         tDataTree* temp = head->next;
@@ -101,8 +143,8 @@ void OPER_mkdir(tDataHead *head,char target[]){
         while ((temp->Right) != NULL) {
             temp = temp->Right;
         }
-        temp->Right = new;
         new->parent = temp;
+        temp->Right = new;
     }
 }
 
@@ -146,8 +188,8 @@ void OPER_put(tDataHead* head, char target[]) {
     SizeofRemaining -= size;                 //內容大小
 
     if (head->next == NULL) {
+        new->parent = NULL; 
         head->next = new;
-        head->next->parent = NULL;
     }
     else {
         tDataTree* temp = head->next;
@@ -155,8 +197,8 @@ void OPER_put(tDataHead* head, char target[]) {
         while ((temp->Right) != NULL) {
             temp = temp->Right;
         }
+        new->parent=temp;
         temp->Right = new;
-        new->parent = temp;
     }
 
     // printf("new'' name:%s,f:%d,l:%p,r:%p,p:%p,size:%d\n",new->FileName,new->folder,new->Left,new->Right,new->parent,new->size);
