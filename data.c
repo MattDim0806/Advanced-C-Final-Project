@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 #include <sys/stat.h>
 
 //----------------------------------------------------------------------------------
@@ -94,7 +95,7 @@ int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path){
         if(!strcmp(head->Name,"root")){   //已在root
             printf("already in the root\n");
         }else{
-            Del_DataPath(curr_Path);printf("3\n");
+            Del_DataPath(curr_Path);
             return 0;                     //0表示路徑往上走
         }
     }else{                                //往下層
@@ -205,6 +206,41 @@ void OPER_put(tDataHead* head, char target[]) {
     // printf("head' name:%s,f:%d,l:%p,r:%p,p:%p,size:%d\n",head->FileName,head->folder,head->Left,head->Right,head->parent,head->size);
 }
 
+void OPER_get(tDataHead* head, char target[]) {
+    int exit=0;
+    tDataTree *temp;
+
+    if (head->next != NULL) {
+        temp = head->next;
+
+        while(temp!=NULL)
+        {
+            if(!strcmp(temp->FileName,target)){
+                exit=1;
+                break;
+            }
+            if(temp->Right!=NULL){                                     //非空，繼續搜尋
+                temp=temp->Right;
+            }else{
+                break;
+            }
+        }
+    }
+    if(exit==1){
+        char* content=temp->content;
+        char FileName[20]="Dump\\";
+        
+        strcat(FileName, target);
+        CreateDirectory("Dump", NULL);
+        FILE *fp = fopen(FileName, "wb");
+        fwrite(content,sizeof(char),temp->size,fp);
+        fclose(fp);
+    }else{
+        printf("File does not exist !\n");
+        return;
+    }
+}
+
 void OPER_cat(tDataHead* head, char target[]) {
     int exit=0;
     tDataTree *temp;
@@ -218,7 +254,11 @@ void OPER_cat(tDataHead* head, char target[]) {
                 exit=1;
                 break;
             }
-            if(temp->Right!=NULL) temp=temp->Right;
+            if(temp->Right!=NULL){                                     //非空，繼續搜尋
+                temp=temp->Right;
+            }else{
+                break;
+            }
         }
     }
     if(exit==1){

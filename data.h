@@ -35,6 +35,7 @@ void OPER_ls(tDataHead *head);
 int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path);
 void OPER_mkdir(tDataHead *head,char target[]);
 void OPER_put(tDataHead *head,char target[]);
+void OPER_get(tDataHead *head,char target[]);
 void OPER_cat(tDataHead *head,char target[]);
 
 #endif

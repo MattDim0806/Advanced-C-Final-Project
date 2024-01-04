@@ -8,6 +8,11 @@
 #include "ui.h"
 
 //----------------------------------------------------------------------------------
+
+extern int SizeofRemaining;
+
+//----------------------------------------------------------------------------------
+
 char* UI_SelectFunc_Init(int *SizeOfPartition){
     int select;
 
@@ -77,4 +82,9 @@ void UI_Help(void){
     printf("'status' show of the space\n");
     printf("'help'\n");
     printf("'exit' exit and store img'\n");
+}
+
+void UI_status(int SizeOfPartition){
+    printf("Partition size:\t%d\n",SizeOfPartition);
+    printf("free space:\t%d\n",SizeofRemaining);
 }

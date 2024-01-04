@@ -39,9 +39,7 @@ void main() {
             OPER_ls(curr_Path->Head);
         }else if(!strcmp("cd",oper[0])){
             int FoR;
-            // printf("h:%p,hn:%p,c:%p\n",head,head->next,curr_Path);
             FoR=OPER_cd(oper[1],root,curr_Path);
-            printf("For:%d\n",FoR);
             if(FoR==1){
                 curr_Path = curr_Path->next;
             }else if(FoR==0){
@@ -49,7 +47,6 @@ void main() {
                 curr_Path = curr_Path->prev;
                 free(temp);
             }
-            // printf("h:%p,hn:%p,c:%p\n",head,head->next,curr_Path);
         }else if(!strcmp("rm",oper[0])){
             printf("==rm\n");
         }else if(!strcmp("mkdir",oper[0])){
@@ -59,11 +56,11 @@ void main() {
         }else if(!strcmp("put",oper[0])){
             OPER_put(curr_Path->Head,oper[1]);
         }else if(!strcmp("get",oper[0])){
-            printf("==get\n");
+            OPER_get(curr_Path->Head, oper[1]);
         }else if(!strcmp("cat",oper[0])){
             OPER_cat(curr_Path->Head, oper[1]);
         }else if(!strcmp("status",oper[0])){
-            printf("==status\n");
+            UI_status(SizeOfPartition);
         }else if(!strcmp("help",oper[0])){
             UI_Help();
         }else if(!strcmp("exit",oper[0])){
@@ -71,9 +68,9 @@ void main() {
         }else{
             printf("no such operation \n");
         }
-        printf("\nSizeofRemaining: %d\n",SizeofRemaining);
-        printf("\nHead: %s\n",head->Name);
-        printf("\nHead: %s\n",curr_Path->Head->Name);
+        // printf("\nSizeofRemaining: %d\n",SizeofRemaining);
+        // printf("\nHead: %s\n",head->Name);
+        // printf("\nHead: %s\n",curr_Path->Head->Name);
     } 
  
 }
