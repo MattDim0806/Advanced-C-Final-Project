@@ -43,7 +43,7 @@ char* UI_SelectFunc_Init(int *SizeOfPartition){
 
 void UI_SelectFunc_Oper(char oper[][10],tDataPath *root,tDataPath *curr_Path){
     int i=0;
-    char InputString[20];
+    char InputString[20]="";
     tDataPath *temp=root;
     
     //產生路徑

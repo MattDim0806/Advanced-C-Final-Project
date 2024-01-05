@@ -4,7 +4,7 @@
 
 //---------------------------------------------------------------------
 
-int SizeofRemaining=0;
+int SizeofRemaining;
 
 //---------------------------------------------------------------------
 
@@ -12,11 +12,7 @@ void main() {
     int SizeOfPartition=-1;           //空間大小
     char *ptr_Partition;              //空間指標
     char oper[2][10];                 //輸入command轉換運算及引數
-    
-    tDataHead *head=Create_Init_DataHead("root");   //dump管理
-    tDataPath *root=Create_Init_DataPath(head);   //路徑暫存
-    tDataPath *curr_Path=root;
-    
+
     //------------------------------------------------------------------
 
     ptr_Partition=UI_SelectFunc_Init(&SizeOfPartition);      //空間初始化
@@ -24,16 +20,16 @@ void main() {
     UI_Help();
     
     //------------------------------------------------------------------
+    tDataHead *head=Create_Init_DataHead("root");   //dump管理
+    tDataPath *root=Create_Init_DataPath(head);   //路徑暫存
+    tDataPath *curr_Path=root;
     
+    //------------------------------------------------------------------
 
     while(1){
         strcpy(oper[0],"\0");
         strcpy(oper[1],"\0");
         UI_SelectFunc_Oper(oper,root,curr_Path);
-
-        // printf("0:<%s>\n",oper[0]);
-        // printf("1:<%s>\n",oper[1]);
-        // printf("0:%d\n",!strcmp("ls",oper[0]));
 
         if(!strcmp("ls",oper[0])){
             OPER_ls(curr_Path->Head);
@@ -48,11 +44,11 @@ void main() {
                 free(temp);
             }
         }else if(!strcmp("rm",oper[0])){
-            printf("==rm\n");
+            OPER_rm(curr_Path->Head,oper[1]);
         }else if(!strcmp("mkdir",oper[0])){
             OPER_mkdir(curr_Path->Head,oper[1]);
         }else if(!strcmp("rmdir",oper[0])){
-            printf("==rmdir\n");
+            OPER_rmdir(curr_Path->Head,oper[1]);
         }else if(!strcmp("put",oper[0])){
             OPER_put(curr_Path->Head,oper[1]);
         }else if(!strcmp("get",oper[0])){
@@ -64,10 +60,11 @@ void main() {
         }else if(!strcmp("help",oper[0])){
             UI_Help();
         }else if(!strcmp("exit",oper[0])){
-            printf("==exit\n");
+            break;
         }else{
             printf("no such operation \n");
         }
+        // printf("Size: %d\n",sizemin-SizeofRemaining);
         // printf("\nSizeofRemaining: %d\n",SizeofRemaining);
         // printf("\nHead: %s\n",head->Name);
         // printf("\nHead: %s\n",curr_Path->Head->Name);
