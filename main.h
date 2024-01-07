@@ -12,9 +12,19 @@ typedef enum  Operator{
     mkdir,
     rmdir,
     put,
-    get,
+    get,                                    
     cat,
     ststus,
     help,
     exit_and_store_img
 }eOperator;
+
+
+
+// |-- root
+//     |-- text1.txt
+//     |-- text2.txt
+//     |-- folder1
+//         |-- folder2
+//             |-- text3.txt
+//         |-- text1.txt

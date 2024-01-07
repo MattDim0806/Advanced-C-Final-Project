@@ -15,22 +15,23 @@ extern int SizeofRemaining;
 //----------------------------------------------------------------------------------
 
 tDataPath* Create_Init_DataPath(tDataHead *head) {
+    //建立並初始化路徑
     tDataPath* root = (tDataPath*)malloc(sizeof(tDataPath));
     strcpy(root->folder,"root");
     root->next = NULL;
     root->prev = NULL;
     root->Head=head;
 
-    // SizeofRemaining -= sizeof(tDataPath);
     return root;
 }
 
 tDataHead* Create_Init_DataHead(char Name[]) {
+    //建立並初始化Head
     tDataHead* head = (tDataHead*)malloc(sizeof(tDataHead));
     strcpy(head->Name,Name);
     head->next = NULL;
 
-    printf("Head(%s) use space:%d \n",head->Name,sizeof(tDataHead));
+    //需要一併存入Dump內(還原檔案時需要)
     SizeofRemaining -= sizeof(tDataHead);
     return head;
 }
@@ -42,8 +43,6 @@ void Add_DataPath(tDataPath* curr_Path,char target[],tDataHead *head) {
     curr_Path->next = new_path;
     new_path->prev = curr_Path;
     new_path->Head=head;
-
-    // SizeofRemaining -= sizeof(tDataPath);
 }
 
 void Del_DataPath(tDataPath *curr_Path){
@@ -51,48 +50,40 @@ void Del_DataPath(tDataPath *curr_Path){
 }
 
 void FolderSpaceFree(tDataHead* head) {
-    printf("%s\n", head->Name);
     int flag = 0;
 
-    if (head->next != NULL) {
+    if (head->next != NULL) {                         //若子目錄內非空
         tDataTree* temp = head->next;
         tDataTree* prev=NULL;
-        printf("%s\n", temp->FileName);
-        while (flag == 0) {
-            prev = temp;
 
-            if (temp->Right != NULL) {
-                printf("%s\n", temp->Right->FileName);
-                temp = temp->Right;
-            }
-            else {
-                flag = 1;
+        while (flag == 0) {                           
+            prev = temp;                              //儲存當前節點
+
+            if (temp->Right != NULL) {                //若非空
+                temp = temp->Right;                   //繼續走訪
+            }else {                                   //若空
+                flag = 1;                             //舉旗標，脫離while
             }
 
-            if (prev->parent == NULL) {
-                head->next = NULL;
-            }else {
-                prev->parent->Right = NULL;
+            if (prev->parent == NULL) {     //若當前節點無子節點(即當前節點為子目錄內第一筆資料)
+                head->next = NULL;          //斷開Head鏈結
+            }else {                         //若非子目錄內第一筆資料
+                prev->parent->Right = NULL; //斷開與前一資料之鏈結
             }
 
-            if (prev->folder == 1) {
-                FolderSpaceFree(prev->Left);
-                printf("folder(%s) free space:%d \n", prev->FileName, sizeof(tDataTree));
-                SizeofRemaining += sizeof(tDataTree);
+            if (prev->folder == 1) {                 //若當前節點為資料夾
+                FolderSpaceFree(prev->Left);         //繼續遞迴該子目錄內資料節點
+                SizeofRemaining += sizeof(tDataTree);//剩餘空間'加回'結構大小
+            }else {                                  //若當前節點為檔案
+                SizeofRemaining += sizeof(tDataTree);//剩餘空間'加回'結構大小
+                SizeofRemaining += prev->size;       //剩餘空間'加回'content內容大小
+                free(prev->content);                 //釋放content內容空間
             }
-            else {
-                printf("Node(%s) free struct space:%d \n", prev->FileName, sizeof(tDataTree));
-                printf("Node(%s) free content space:%d \n", prev->FileName, prev->size);
-                SizeofRemaining += sizeof(tDataTree);
-                SizeofRemaining += prev->size;
-                free(prev->content);
-            }
-            free(prev);
+            free(prev);                              //釋放資料節點空間
         }
     }
-    printf("Head(%s) free space:%d \n", head->Name, sizeof(tDataHead));
-    SizeofRemaining += sizeof(tDataHead);
-    free(head);
+    SizeofRemaining += sizeof(tDataHead);            //剩餘空間'加回'Head結構大小
+    free(head);                                      //釋放Head結構空間
 }
 
 void OPER_LoadDump() {     //Load ().dump
@@ -112,21 +103,20 @@ void OPER_LoadDump() {     //Load ().dump
 }
 
 void OPER_ls(tDataHead* head) {
-    if (head->next == NULL) {
+    if (head->next == NULL) {                              //Head->next為NULL表示該路徑為空
         printf("\n");
         return;
     }
     tDataTree* temp = head->next;
 
-    while (temp != NULL) {
-        if (temp->folder == 1) {
-            printf("\x1B[0;34m""%s ", temp->FileName);
-        }
-        else {
-            printf("\x1B[0m""%s ", temp->FileName);
+    while (temp != NULL) {                                 //走訪節點
+        if (temp->folder == 1) {                           //型態為資料夾
+            printf("\x1B[0;34m""%s ", temp->FileName);       //藍色字型
+        }else {                                            //型態非資料夾
+            printf("\x1B[0m""%s ", temp->FileName);          //黑色字型
         }
 
-        if (temp->Right == NULL) {
+        if (temp->Right == NULL) {                         //走訪完畢
             break;
         }
         temp = temp->Right;
@@ -135,49 +125,49 @@ void OPER_ls(tDataHead* head) {
 }
 
 int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path){
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                    //輸入之目標路徑"名稱"不可為空
         printf("Path Name cannot be empty!\n");
         return -1;
     }
     
-    int exit=0;
+    int exit=0;                                  
     tDataTree *temp;
     tDataHead *head=curr_Path->Head;
 
     
-    if(!strcmp(target,"..")){             //回上層
-        if(!strcmp(head->Name,"root")){   //已在root
+    if(!strcmp(target,"..")){                                           //往上層
+        if(!strcmp(head->Name,"root")){                                 //使用Head確認是否已在根目錄
             printf("already in the root\n");
-        }else{
-            Del_DataPath(curr_Path);
-            return 0;                     //0表示路徑往上走
+        }else{                                   
+            Del_DataPath(curr_Path);                                    //若否，先使用副程式移除DataPath連接
+            return 0;                                                   //0表示路徑往上層
         }
-    }else{                                //往下層
+    }else{                                                              //往下層
         if (head->next != NULL) {
             temp = head->next;
             while(1){
-                if((!strcmp(temp->FileName,target)) && temp->folder==1){   //尋找子目錄 
-                    exit=1;
+                if((!strcmp(temp->FileName,target)) && temp->folder==1){//尋找子目錄 
+                    exit=1;                                             //找到目標資料夾
                     break;
                 }
-                if(temp->Right!=NULL){                                     //非空，繼續搜尋
+                if(temp->Right!=NULL){                                  //非空，繼續搜尋
                     temp=temp->Right;
                 }else{
                     break;
                 }
             }
         }
-        if(exit==1){                                             //存在子目錄
-            Add_DataPath(curr_Path,temp->FileName,temp->Left);   //添加路徑               
-            return 1;                                            //1表示路徑往下走
+        if(exit==1){                                                    //存在子目錄
+            Add_DataPath(curr_Path,temp->FileName,temp->Left);          //添加路徑               
+            return 1;                                                   //1表示路徑往下走
         }
     }
-    printf("Folder does not exist !\n");
-    return -1;
+    printf("Folder does not exist !\n");                                //找不到目標資料夾
+    return -1;                                                          //-1表示失敗
 }
 
 void OPER_rm(tDataHead *head,char target[]){
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                           //輸入之目標檔案"名稱"不可為空
         printf("File Name cannot be empty!\n");
         return;
     }
@@ -189,20 +179,20 @@ void OPER_rm(tDataHead *head,char target[]){
         temp = head->next;
 
         while(temp!=NULL)
-        {
-            if(!strcmp(temp->FileName,target) && temp->folder==0){
-                exit=1;
+        {                                               //尋找目標檔案
+            if(!strcmp(temp->FileName,target) && temp->folder==0){    
+                exit=1;                                 //找到
                 break;
             }
-            if(temp->Right!=NULL){                                     //非空，繼續搜尋
+            if(temp->Right!=NULL){                      //非空，繼續搜尋
                 temp=temp->Right;
             }else{
                 break;
             }
         }
     }
-    if(exit==1){
-        if(temp->parent==NULL){                              //先處理link
+    if(exit==1){                                       //目標檔案存在
+        if(temp->parent==NULL){                        //處理鏈結
             head->next = temp->Right;
         }else if(temp->Right==NULL){
             temp->parent->Right=NULL;
@@ -210,12 +200,10 @@ void OPER_rm(tDataHead *head,char target[]){
             temp->parent->Right=temp->Right;
             temp->Right->parent=temp->parent;
         }
-        printf("File(%s) free struct space:%d \n",temp->FileName,sizeof(tDataTree));
-        printf("File(%s) free content space:%d \n",temp->FileName,temp->size);
-        SizeofRemaining+=sizeof(tDataTree);
-        SizeofRemaining+=temp->size;
-        free(temp->content);
-        free(temp);
+        SizeofRemaining+=sizeof(tDataTree);            //剩餘空間'加回'結構大小
+        SizeofRemaining+=temp->size;                   //剩餘空間'加回'content內容大小
+        free(temp->content);                           //釋放結構空間
+        free(temp);                                    //釋放content內容空間
         return;
     }else{
         printf("File does not exist !\n");
@@ -224,40 +212,37 @@ void OPER_rm(tDataHead *head,char target[]){
 }
 
 void OPER_mkdir(tDataHead *head,char target[]){
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                                 //輸入之目標檔案"名稱"不可為空
         printf("Folder Name cannot be empty!\n");
         return;
     }
     
-    tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree));
-    printf("Hmkdir(%s) use space:%d \n",target,sizeof(tDataTree));
-    SizeofRemaining -= sizeof(tDataTree);
+    tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree));   //動態存取(樹狀資料節點)
+    SizeofRemaining -= sizeof(tDataTree);                     //剩餘空間'減去'結構大小
 
-    strcpy(new->FileName, target);
-    new->content = NULL;
-    new->folder = 1;
-    new->Left = Create_Init_DataHead(target); 
-    
-    new->Right = NULL;
-    new->size = 0;
+    strcpy(new->FileName, target);                            //資料夾名稱
+    new->content = NULL;                                      //將資料指標為NULL
+    new->folder = 1;                                          //是資料夾
+    new->Left = Create_Init_DataHead(target);                 //子階層建立並初始化Head"folder"
+    new->Right = NULL;                                        //同階層預設為NULL
+    new->size = 0;                                            //content之資料大小
 
-    if (head->next == NULL) {
-        new->parent = NULL;
-        head->next = new;
-    }
-    else {
-        tDataTree* temp = head->next;
+    if (head->next == NULL) {                                 //Head為空=>此檔案為該目錄之第一個檔案
+        new->parent = NULL;                                   //此節點無前一節點
+        head->next = new;                                     //將Haed指向此節點
+    }else{
+        tDataTree* temp = head->next;            
 
-        while ((temp->Right) != NULL) {
+        while ((temp->Right) != NULL) {                       //走訪至最後一節點位置
             temp = temp->Right;
         }
-        new->parent = temp;
+        new->parent=temp;                                     //與最後一節點建立雙向鏈結
         temp->Right = new;
     }
 }
 
 void OPER_rmdir(tDataHead *head,char target[]){
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                                  //輸入之資料夾"名稱"不可為空
         printf("Folder Name cannot be empty!\n");
         return;
     }
@@ -269,19 +254,19 @@ void OPER_rmdir(tDataHead *head,char target[]){
         temp = head->next;
 
         while(temp!=NULL)
-        {
+        {                                                     //尋找目標子目錄
             if((!strcmp(temp->FileName,target)) && temp->folder==1){
-                exit=1;
+                exit=1;                                       //找到
                 break;
             }
-            if(temp->Right!=NULL){                               //非空，繼續搜尋
+            if(temp->Right!=NULL){                            //非空，繼續搜尋
                 temp=temp->Right;
             }else{
                 break;
             }
         }
-        if(exit==1){                                             //存在子目錄
-            if(temp->parent==NULL){                              //先處理link
+        if(exit==1){                                          //目標子目錄存在
+            if(temp->parent==NULL){                           //處理樹狀結構鏈結
                 head->next = temp->Right;
             }else if(temp->Right==NULL){
                 temp->parent->Right=NULL;
@@ -289,9 +274,9 @@ void OPER_rmdir(tDataHead *head,char target[]){
                 temp->parent->Right=temp->Right;
                 temp->Right->parent=temp->parent;
             }
-            FolderSpaceFree(temp->Left);
-            printf("folder(%s) free space:%d \n",temp->FileName,sizeof(tDataTree));
-            SizeofRemaining+=sizeof(tDataTree);
+            FolderSpaceFree(temp->Left);                      //使用遞回處理子目錄內剩餘檔案
+            SizeofRemaining+=sizeof(tDataTree);               //剩餘空間'加回'結構大小
+            free(temp);                                       //釋放結構
             return;
         }
     }
@@ -299,69 +284,63 @@ void OPER_rmdir(tDataHead *head,char target[]){
 }
 
 void OPER_put(tDataHead* head, char target[]) {
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                    //輸入之目標檔案"名稱"不可為空
         printf("File Name connot be empty!\n");
         return;
     }
 
-    int size;
-    char* content;
-    struct stat st;
-    FILE* fp;
+    int size;                                   //檔案大小
+    char* content;                              //檔案內容存放指標
+    struct stat st;                             //<sys/stat.h>獲取文件狀態
+    FILE* fp;                                   //資料指標
 
-    fp = fopen(target, "rb");
-    if (fp == NULL) {
+    fp = fopen(target, "rb");                   //使用二進制格式開啟
+    if (fp == NULL) {                           //若為空表示檔案不存在
         printf("failed to open file '%s'\n", target);
         return;
     }
 
-    stat(target, &st);
+    stat(target, &st);                          //獲取檔案大小(Byte)
     size = st.st_size;
 
-    if (SizeofRemaining < size) {
+    if (SizeofRemaining < size) {               //若大於剩餘空間無法則放入
         printf("Not enough remaining space !\n");
         return;
     }
 
-    // printf("put aize: %d\n",size);
-
-    content = (char*)malloc(size);
-    fread(content, 1, size, fp);
-    fclose(fp);
+    content = (char*)malloc(size);              //動態配置對應空間大小存放資料
+    fread(content, 1, size, fp);                //使用函數將外部檔案複製進記憶體
+    fclose(fp);                                 //關閉檔案
 
     // -----------------------------------------------------
  
-    tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree));
-    printf("put(%s) struct use space:%d \n",target,sizeof(tDataTree));
-    SizeofRemaining -= sizeof(tDataTree);    //結構大小
+    tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree)); //動態存取(樹狀資料節點)
+    SizeofRemaining -= sizeof(tDataTree);                   //剩餘空間'減去'結構大小
 
-    strcpy(new->FileName, target);
-    new->content = content;
-    new->folder = 0;
-    new->Left = NULL;
-    new->Right = NULL;
-    new->size = size;
-    SizeofRemaining -= size;                 //內容大小
-    printf("put(%s) content use space:%d \n",target,size);
+    strcpy(new->FileName, target);               //檔案名稱
+    new->content = content;                      //將資料指標指向先前搬移至記憶體之位置
+    new->folder = 0;                             //非資料夾
+    new->Left = NULL;                            //無子階層
+    new->Right = NULL;                           //同階層預設為NULL
+    new->size = size;                            //儲存content之資料大小
+    SizeofRemaining -= size;                     //剩餘空間'減去' content內容大小
 
-    if (head->next == NULL) {
-        new->parent = NULL; 
-        head->next = new;
+    if (head->next == NULL) {                    //Head為空=>此檔案為該目錄之第一個檔案
+        new->parent = NULL;                      //此節點無前一節點
+        head->next = new;                        //將Haed指向此節點
     }else{
-        tDataTree* temp = head->next;
+        tDataTree* temp = head->next;            
 
-        while ((temp->Right) != NULL) {
+        while ((temp->Right) != NULL) {          //走訪至最後一節點位置
             temp = temp->Right;
         }
-        new->parent=temp;
+        new->parent=temp;                        //與最後一節點建立雙向鏈結
         temp->Right = new;
     }
-    // printf("new'' name:%s,f:%d,l:%p,r:%p,p:%p,size:%d\n",new->FileName,new->folder,new->Left,new->Right,new->parent,new->size);
-    // printf("head' name:%s,f:%d,l:%p,r:%p,p:%p,size:%d\n",head->FileName,head->folder,head->Left,head->Right,head->parent,head->size);
 }
 
 void OPER_get(tDataHead* head, char target[]) {
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                           //輸入之檔案"名稱"不可為空
         printf("File Name connot be empty!\n");
         return;
     }
@@ -373,35 +352,35 @@ void OPER_get(tDataHead* head, char target[]) {
         temp = head->next;
 
         while(temp!=NULL)
-        {
-            if(!strcmp(temp->FileName,target)){
-                exit=1;
+        {                                               //尋找目標檔案
+            if(!strcmp(temp->FileName,target) && temp->folder==0){    
+                exit=1;                                 //找到
                 break;
             }
-            if(temp->Right!=NULL){                                     //非空，繼續搜尋
+            if(temp->Right!=NULL){                      //非空，繼續搜尋
                 temp=temp->Right;
             }else{
                 break;
             }
         }
     }
-    if(exit==1){
+    if(exit==1){                                        //目標檔案存在
         char* content=temp->content;
-        char FileName[20]="Dump\\";
+        char FileName[20]="Dump\\";                     //路徑名稱
         
-        strcat(FileName, target);
-        CreateDirectory("Dump", NULL);
-        FILE *fp = fopen(FileName, "wb");
-        fwrite(content,sizeof(char),temp->size,fp);
-        fclose(fp);
+        strcat(FileName, target);                       //路徑名稱+檔案名稱
+        CreateDirectory("Dump", NULL);                  //創建Dump子目錄
+        FILE *fp = fopen(FileName, "wb");              
+        fwrite(content,sizeof(char),temp->size,fp);     //檔案寫出
+        fclose(fp);                                     //關閉檔案指標
     }else{
-        printf("File does not exist !\n");
+        printf("File does not exist !\n");              //目標檔案不存在
         return;
     }
 }
 
 void OPER_cat(tDataHead* head, char target[]) {
-    if(!strcmp("\0",target)){
+    if(!strcmp("\0",target)){                           //輸入之檔案檔案"名稱"不可為空
         printf("File Name connot be empty!\n");
         return;
     }
@@ -413,26 +392,26 @@ void OPER_cat(tDataHead* head, char target[]) {
         temp = head->next;
 
         while(temp!=NULL)
-        {
-            if(!strcmp(temp->FileName,target)){
-                exit=1;
+        {                                               //尋找目標檔案
+            if(!strcmp(temp->FileName,target) && temp->folder==0){    
+                exit=1;                                 //找到
                 break;
             }
-            if(temp->Right!=NULL){                                     //非空，繼續搜尋
+            if(temp->Right!=NULL){                      //非空，繼續搜尋
                 temp=temp->Right;
             }else{
                 break;
             }
         }
     }
-    if(exit==1){
-        char* content=temp->content;
+    if(exit==1){                                        //目標檔案存在
+        char* content=temp->content;                    //索引至檔案位置
         for (int count = 0; count < temp->size; count++) {
-            printf("%c", content[count]);
+            printf("%c", content[count]);               //輸出
         }
         printf("\n");
-    }else{
-        printf("File does not exist !\n");
+    }else{                                              //目標檔案不存在
+        printf("File does not exist !\n"); 
         return;
     }
 }
