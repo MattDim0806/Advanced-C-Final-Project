@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dirent.h>     // For Linux
+#endif
 
 //----------------------------------------------------------------------------------
 
@@ -86,7 +92,7 @@ void FolderSpaceFree(tDataHead* head) {
     free(head);                                      //釋放Head結構空間
 }
 
-void OPER_LoadDump() {     //Load ().dump
+void OPER_LoadDump(){     //Load ().dump
     FILE* fp;
     char LoadFile[15];
 
@@ -100,6 +106,10 @@ void OPER_LoadDump() {     //Load ().dump
     else {
         printf("Load Success.\n");
     }
+}
+
+void OPER_SaveDump(tDataHead *head){
+    
 }
 
 void OPER_ls(tDataHead* head) {
@@ -365,11 +375,18 @@ void OPER_get(tDataHead* head, char target[]) {
         }
     }
     if(exit==1){                                        //目標檔案存在
-        char* content=temp->content;
-        char FileName[20]="Dump\\";                     //路徑名稱
-        
+        char* content=temp->content;       
+        char FileName[20]="./Dump/";                    //路徑名稱
         strcat(FileName, target);                       //路徑名稱+檔案名稱
+
+        #ifdef _WIN32
         CreateDirectory("Dump", NULL);                  //創建Dump子目錄
+        #else
+        if(opendir("Dump")==NULL){                      //'\Dump'存在與否 
+            mkdir("Dump",0777);
+        }
+        #endif
+        
         FILE *fp = fopen(FileName, "wb");              
         fwrite(content,sizeof(char),temp->size,fp);     //檔案寫出
         fclose(fp);                                     //關閉檔案指標

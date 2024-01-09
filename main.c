@@ -60,7 +60,7 @@ void main() {
         }else if(!strcmp("help",oper[0])){               //help
             UI_Help();
         }else if(!strcmp("exit",oper[0])){               //exit
-            break;
+            OPER_SaveDump(head);
         }else{
             printf("no such operation \n");
         }

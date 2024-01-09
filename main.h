@@ -5,20 +5,6 @@
 
 //------------------------------------------------------------------
 
-typedef enum  Operator{
-    ls,
-    cd,
-    rm,
-    mkdir,
-    rmdir,
-    put,
-    get,                                    
-    cat,
-    ststus,
-    help,
-    exit_and_store_img
-}eOperator;
-
 
 
 // |-- root

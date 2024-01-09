@@ -31,7 +31,8 @@ tDataHead* Create_Init_DataHead(char Name[]);                             //
 void Add_DataPath(tDataPath *curr_Path,char target[],tDataHead *head);    //
 void Del_DataPath(tDataPath *curr_Path);                                  //
 void FolderSpaceFree(tDataHead *head);                                    //
-void OPER_LoadDump(void);
+void OPER_LoadDump();
+void OPER_SaveDump(tDataHead *head);
 void OPER_ls(tDataHead *head);                                            //
 int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path);          //
 void OPER_rm(tDataHead *head,char target[]);                              //
@@ -40,5 +41,6 @@ void OPER_rmdir(tDataHead *head,char target[]);                           //
 void OPER_put(tDataHead *head,char target[]);                             //
 void OPER_get(tDataHead *head,char target[]);                             //                          
 void OPER_cat(tDataHead *head,char target[]);                             //
+
 
 #endif
