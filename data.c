@@ -91,13 +91,13 @@ void FolderSpaceFree(tDataHead* head) {
 tDataTree* OPER_LoadDump(int *SizeOfPartition){
     FILE* fp;
     tDataTree *TreeRoot,*TreePrev;
-    tDataPath *PathRoot=Create_Init_DataPath(NULL);  //資料夾stack
-    tDataPath *PathCurr=PathRoot;                    //待處理
+    tDataPath *PathRoot=Create_Init_DataPath(NULL);   //資料夾stack
+    tDataPath *PathCurr=PathRoot;                    
     struct stat st;
     char LoadFile[15];
     int first=1,Head=0;
 
-    do{
+    do{                                               //讀取檔案
         printf("Load Flie Name:");
         scanf("%s", LoadFile);
 
@@ -110,19 +110,19 @@ tDataTree* OPER_LoadDump(int *SizeOfPartition){
         }
     }while(fp == NULL);
     
-    stat(LoadFile, &st);                          //獲取檔案大小(Byte)
+    stat(LoadFile, &st);                                           //獲取檔案大小(Byte)
     fread(SizeOfPartition,sizeof(int),1,fp);
-    SizeofRemaining=(*SizeOfPartition-sizeof(int));    //更新至變數
+    SizeofRemaining=(*SizeOfPartition-sizeof(int));                //更新至變數
 
-    if(ftell(fp) >= st.st_size){
-        return NULL;
+    if(ftell(fp) >= st.st_size){                                   //表示結構內無資料
+        return NULL;                                   
     }
-
-    while(ftell(fp) < st.st_size){
-        tDataTree *TreeTemp=(tDataTree*)malloc(sizeof(tDataTree));
-        tSaveFormat temp;
+ 
+    while(ftell(fp) < st.st_size){                                 //判斷檔案結尾
+        tDataTree *TreeTemp=(tDataTree*)malloc(sizeof(tDataTree)); //動態新增樹狀結構
+        tSaveFormat temp;                                          //儲存結構
         SizeofRemaining-=sizeof(tSaveFormat);
-        fread(&temp, sizeof(tSaveFormat), 1, fp);
+        fread(&temp, sizeof(tSaveFormat), 1, fp);                  //讀取一個儲存節點
 
         strcpy(TreeTemp->FileName,temp.Name);
         TreeTemp->content=NULL;
@@ -133,37 +133,36 @@ tDataTree* OPER_LoadDump(int *SizeOfPartition){
 
         //--------------------------------------------------------------
 
-        if(first){ 
+        if(first){                                                 //檔案內首個節點為root
             TreeRoot=TreeTemp;
             TreeTemp->parent=NULL;
             first=0;
-        }else{
-            if(temp.first){
-                tDataPath *PathTemp=PathCurr;
+        }else{                                                      
+            if(temp.first){                                        //若讀取為首個檔案，表示為子目錄
+                tDataPath *PathTemp=PathCurr;                      //從stack內獲取Head資訊
 
                 PathCurr->Head->next=TreeTemp;
                 TreeTemp->parent=NULL;
 
-                Del_DataPath(PathCurr);
+                Del_DataPath(PathCurr);                            //pop stack
                 PathCurr=PathCurr->prev;
                 free(PathTemp);
-            }else{
-                TreePrev->Right=TreeTemp;
+            }else{ 
+                TreePrev->Right=TreeTemp;                          //若非首節點，則處理鏈結
                 TreeTemp->parent=TreePrev;
             }
         }
-
-        if(TreeTemp->folder==1){
+  
+        if(TreeTemp->folder==1){                                   //為資料夾
             TreeTemp->Left=Create_Init_DataHead(TreeTemp->FileName);
-            if(TreeTemp->size==-1){               //子目錄內無檔案
-                TreeTemp->Left->next=NULL;
+            if(TreeTemp->size==-1){                                //-1 子目錄內無檔案
+                TreeTemp->Left->next=NULL;                         //子目錄設為NULL
             }else{
                 Add_DataPath(PathCurr,TreeTemp->FileName,TreeTemp->Left);
-                PathCurr=PathCurr->next;
-                printf("pc:%s\n",PathCurr->folder);
+                PathCurr=PathCurr->next;                           //push stack
             }
-        }else{
-            char *content=(char*)malloc(temp.size);
+        }else{                                                     //為檔案節點
+            char *content=(char*)malloc(temp.size);                //繼續讀取檔案
             SizeofRemaining-=temp.size;
             fread(content,temp.size,1,fp);
             TreeTemp->content=content;
