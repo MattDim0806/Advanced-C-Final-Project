@@ -12,5 +12,5 @@
 //     |-- text2.txt
 //     |-- folder1
 //         |-- folder2
-//             |-- text3.txt
-//         |-- text1.txt
+//             |-- text1.txt
+//         |-- text3.txt

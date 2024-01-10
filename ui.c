@@ -6,6 +6,7 @@
 //----------------------------------------------------------------------------------
 
 #include "ui.h"
+#include "data.h"
 
 //----------------------------------------------------------------------------------
 
@@ -13,32 +14,29 @@ extern int SizeofRemaining;
 
 //----------------------------------------------------------------------------------
 
-char* UI_SelectFunc_Init(int *SizeOfPartition){
+tDataTree* UI_SelectFunc_Init(int *SizeOfPartition){
     int select;
 
     do{
         printf("options:\n");
         printf("  1.loads from file\n");
         printf("  2.create new partition in memory\n");
-        scanf("%d",&select);                                                  //選擇讀取Dump檔案或是新建一個空間
+        scanf("%d",&select);                                              //選擇讀取Dump檔案或是新建一個空間
 
-        if(select==1){                                                        //若是讀取檔案則呼叫副程式處理
-            OPER_LoadDump();
-        }else if(select==2){                                                  //若為新增
+        if(select==1){                                                    //若是讀取檔案則呼叫副程式處理
+            tDataTree *load=OPER_LoadDump(SizeOfPartition);
+            getchar();
+            return load;
+        }else if(select==2){                                              //若為新增
             printf("Input size of a new partition (example 1024000):");
-            scanf("%d",SizeOfPartition);                                      //讀取欲新增Partition大小
+            scanf("%d",SizeOfPartition);                                  //讀取欲新增Partition大小
             getchar();
             printf("partition size = %d\n\n",*SizeOfPartition); 
             
-            char *ptr_Partition=calloc(*SizeOfPartition,sizeof(char));        //動態配置空間
-            if (ptr_Partition!=NULL){
-                printf("Make new patition successful !\n");                   //若非空即新增完成
-                return ptr_Partition;                                         //返還空間指標
-            }else{
-                printf("Make new patition failed !\n");                       //若為空即動態配置失敗
-            }
+            SizeofRemaining=(*SizeOfPartition-sizeof(int));               //更新至變數(保留int空間儲存大小)
+            return NULL;
         }
-    }while(!(select==1||select==2));                                          //僅有二選項
+    }while(!(select==1||select==2));                                      //僅有二選項
 }
 
 void UI_SelectFunc_Oper(char oper[][10],tDataPath *root,tDataPath *curr_Path){

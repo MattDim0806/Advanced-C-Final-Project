@@ -23,6 +23,13 @@ typedef struct DataHead{
     char Name[10];
 }tDataHead;
 
+typedef struct SaveFormat{
+    char Name[10];
+    char folder;
+    char first;
+    char finish;
+    int size;
+}tSaveFormat;
 
 //----------------------------------------------------------------------------------
 
@@ -31,8 +38,8 @@ tDataHead* Create_Init_DataHead(char Name[]);                             //
 void Add_DataPath(tDataPath *curr_Path,char target[],tDataHead *head);    //
 void Del_DataPath(tDataPath *curr_Path);                                  //
 void FolderSpaceFree(tDataHead *head);                                    //
-void OPER_LoadDump();
-void OPER_SaveDump(tDataHead *head);
+tDataTree* OPER_LoadDump(int *SizeOfPartition);                           //
+void OPER_SaveDump(tDataHead *head,int SizeOfPartition,tDataPath *root);  //
 void OPER_ls(tDataHead *head);                                            //
 int OPER_cd(char target[],tDataPath *root,tDataPath *curr_Path);          //
 void OPER_rm(tDataHead *head,char target[]);                              //

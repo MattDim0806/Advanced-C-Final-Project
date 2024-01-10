@@ -37,8 +37,6 @@ tDataHead* Create_Init_DataHead(char Name[]) {
     strcpy(head->Name,Name);
     head->next = NULL;
 
-    //需要一併存入Dump內(還原檔案時需要)
-    SizeofRemaining -= sizeof(tDataHead);
     return head;
 }
 
@@ -79,37 +77,162 @@ void FolderSpaceFree(tDataHead* head) {
 
             if (prev->folder == 1) {                 //若當前節點為資料夾
                 FolderSpaceFree(prev->Left);         //繼續遞迴該子目錄內資料節點
-                SizeofRemaining += sizeof(tDataTree);//剩餘空間'加回'結構大小
             }else {                                  //若當前節點為檔案
-                SizeofRemaining += sizeof(tDataTree);//剩餘空間'加回'結構大小
                 SizeofRemaining += prev->size;       //剩餘空間'加回'content內容大小
                 free(prev->content);                 //釋放content內容空間
             }
+            SizeofRemaining += sizeof(tSaveFormat);  //剩餘空間'加回'結構大小
             free(prev);                              //釋放資料節點空間
         }
     }
-    SizeofRemaining += sizeof(tDataHead);            //剩餘空間'加回'Head結構大小
     free(head);                                      //釋放Head結構空間
 }
 
-void OPER_LoadDump(){     //Load ().dump
+tDataTree* OPER_LoadDump(int *SizeOfPartition){
     FILE* fp;
+    tDataTree *TreeRoot,*TreePrev;
+    tDataPath *PathRoot=Create_Init_DataPath(NULL);  //資料夾stack
+    tDataPath *PathCurr=PathRoot;                    //待處理
+    struct stat st;
     char LoadFile[15];
+    int first=1,Head=0;
 
-    printf("Load Flie Name:");
-    scanf("%s", LoadFile);
+    do{
+        printf("Load Flie Name:");
+        scanf("%s", LoadFile);
 
-    fp = fopen(LoadFile, "r+");
-    if (fp == NULL) {
-        printf("failed to open the file.\n");
+        fp = fopen(LoadFile, "rb");
+        if (fp == NULL) {
+            printf("failed to open the file.\n");
+        }
+        else {
+            printf("Load Success.\n");
+        }
+    }while(fp == NULL);
+    
+    stat(LoadFile, &st);                          //獲取檔案大小(Byte)
+    fread(SizeOfPartition,sizeof(int),1,fp);
+    SizeofRemaining=(*SizeOfPartition-sizeof(int));    //更新至變數
+
+    if(ftell(fp) >= st.st_size){
+        return NULL;
     }
-    else {
-        printf("Load Success.\n");
+
+    while(ftell(fp) < st.st_size){
+        tDataTree *TreeTemp=(tDataTree*)malloc(sizeof(tDataTree));
+        tSaveFormat temp;
+        SizeofRemaining-=sizeof(tSaveFormat);
+        fread(&temp, sizeof(tSaveFormat), 1, fp);
+
+        strcpy(TreeTemp->FileName,temp.Name);
+        TreeTemp->content=NULL;
+        TreeTemp->folder=temp.folder;
+        TreeTemp->size=temp.size;
+        TreeTemp->Right=NULL;
+        TreeTemp->Left=NULL;
+
+        //--------------------------------------------------------------
+
+        if(first){ 
+            TreeRoot=TreeTemp;
+            TreeTemp->parent=NULL;
+            first=0;
+        }else{
+            if(temp.first){
+                tDataPath *PathTemp=PathCurr;
+
+                PathCurr->Head->next=TreeTemp;
+                TreeTemp->parent=NULL;
+
+                Del_DataPath(PathCurr);
+                PathCurr=PathCurr->prev;
+                free(PathTemp);
+            }else{
+                TreePrev->Right=TreeTemp;
+                TreeTemp->parent=TreePrev;
+            }
+        }
+
+        if(TreeTemp->folder==1){
+            TreeTemp->Left=Create_Init_DataHead(TreeTemp->FileName);
+            if(TreeTemp->size==-1){               //子目錄內無檔案
+                TreeTemp->Left->next=NULL;
+            }else{
+                Add_DataPath(PathCurr,TreeTemp->FileName,TreeTemp->Left);
+                PathCurr=PathCurr->next;
+                printf("pc:%s\n",PathCurr->folder);
+            }
+        }else{
+            char *content=(char*)malloc(temp.size);
+            SizeofRemaining-=temp.size;
+            fread(content,temp.size,1,fp);
+            TreeTemp->content=content;
+        }
+        TreePrev=TreeTemp;
     }
+    return TreeRoot;
 }
 
-void OPER_SaveDump(tDataHead *head){
-    
+void OPER_SaveDump(tDataHead *head,int SizeOfPartition,tDataPath *root){
+    tDataPath *curr_Path=root;                 
+    tDataTree *temp=head->next, *prev;
+    int flag=0;                              
+    FILE *fp = fopen("my_fs.dump", "wb");
+
+    fwrite(&SizeOfPartition,sizeof(int),1,fp);        //儲存大小資訊
+    if(head->next==NULL){
+        return;
+    }
+
+    while(flag == 0){                           
+        tSaveFormat SaveTemp;       //Name[],folder?,first?,finish?,size?                           
+        prev = temp;                                           //儲存當前節點
+
+        if(temp->Right != NULL){                               //若非空
+            temp = temp->Right;                                 //繼續走訪
+        }else{                                                 //若空
+            flag = 1;                                           //舉旗標，脫離while
+        }
+
+        if(prev->folder == 1){                                 //若當前節點為資料夾
+            strcpy(SaveTemp.Name,prev->FileName);
+            SaveTemp.folder=1;
+            SaveTemp.first=(prev->parent==NULL)?1:0;
+            SaveTemp.finish=flag;
+
+            if(prev->Left->next==NULL){                        //特殊值:為空
+                SaveTemp.size=-1;
+            }else{                                             //非空
+                SaveTemp.size=0;
+                Add_DataPath(curr_Path,prev->FileName,prev->Left);
+                curr_Path=curr_Path->next;                     //stack佇列
+            }
+            fwrite(&SaveTemp,sizeof(tSaveFormat),1,fp);        //檔案寫出
+        }else{                                                 //若當前節點為檔案
+            strcpy(SaveTemp.Name,prev->FileName);
+            SaveTemp.folder=0;
+            SaveTemp.first=(prev->parent==NULL)?1:0;
+            SaveTemp.finish=flag;
+            SaveTemp.size=prev->size;
+
+            fwrite(&SaveTemp,sizeof(tSaveFormat),1,fp);        //結構寫出
+            fwrite((void*)prev->content,prev->size,1,fp);      //檔案寫出
+            free(prev->content);                               //釋放content內容空間
+        }
+        free(prev);                                            //釋放資料節點空間
+        
+        if(strcmp(curr_Path->folder,"root") && flag==1){       //若深度走訪完畢
+            tDataPath *Path_temp=curr_Path;                    //但stack仍有資料夾節點
+
+            temp=curr_Path->Head->next;                        
+            Del_DataPath(curr_Path);
+            curr_Path=curr_Path->prev;
+            free(Path_temp);
+
+            flag=0;                                            //繼續走訪
+        }
+    }   
+    fclose(fp);                                                //關閉檔案指標
 }
 
 void OPER_ls(tDataHead* head) {
@@ -210,10 +333,10 @@ void OPER_rm(tDataHead *head,char target[]){
             temp->parent->Right=temp->Right;
             temp->Right->parent=temp->parent;
         }
-        SizeofRemaining+=sizeof(tDataTree);            //剩餘空間'加回'結構大小
+        SizeofRemaining+=sizeof(tSaveFormat);          //剩餘空間'儲存'結構大小
         SizeofRemaining+=temp->size;                   //剩餘空間'加回'content內容大小
-        free(temp->content);                           //釋放結構空間
-        free(temp);                                    //釋放content內容空間
+        free(temp->content);                           //釋放content內容空間
+        free(temp);                                    //釋放結構空間
         return;
     }else{
         printf("File does not exist !\n");
@@ -226,9 +349,13 @@ void OPER_mkdir(tDataHead *head,char target[]){
         printf("Folder Name cannot be empty!\n");
         return;
     }
+    if (SizeofRemaining < sizeof(tSaveFormat)) {              //若大於剩餘空間無法則放入
+        printf("Not enough remaining space !\n");
+        return;
+    }
     
     tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree));   //動態存取(樹狀資料節點)
-    SizeofRemaining -= sizeof(tDataTree);                     //剩餘空間'減去'結構大小
+    SizeofRemaining -= sizeof(tSaveFormat);                   //剩餘空間'減去'結構大小
 
     strcpy(new->FileName, target);                            //資料夾名稱
     new->content = NULL;                                      //將資料指標為NULL
@@ -285,7 +412,7 @@ void OPER_rmdir(tDataHead *head,char target[]){
                 temp->Right->parent=temp->parent;
             }
             FolderSpaceFree(temp->Left);                      //使用遞回處理子目錄內剩餘檔案
-            SizeofRemaining+=sizeof(tDataTree);               //剩餘空間'加回'結構大小
+            SizeofRemaining+=sizeof(tSaveFormat);               //剩餘空間'加回'結構大小
             free(temp);                                       //釋放結構
             return;
         }
@@ -313,8 +440,9 @@ void OPER_put(tDataHead* head, char target[]) {
     stat(target, &st);                          //獲取檔案大小(Byte)
     size = st.st_size;
 
-    if (SizeofRemaining < size) {               //若大於剩餘空間無法則放入
+    if (SizeofRemaining < (sizeof(tSaveFormat)+size)) { //若大於剩餘空間無法則放入
         printf("Not enough remaining space !\n");
+        fclose(fp);
         return;
     }
 
@@ -325,7 +453,7 @@ void OPER_put(tDataHead* head, char target[]) {
     // -----------------------------------------------------
  
     tDataTree* new = (tDataTree*)malloc(sizeof(tDataTree)); //動態存取(樹狀資料節點)
-    SizeofRemaining -= sizeof(tDataTree);                   //剩餘空間'減去'結構大小
+    SizeofRemaining -= sizeof(tSaveFormat);                 //剩餘空間'儲存'結構大小
 
     strcpy(new->FileName, target);               //檔案名稱
     new->content = content;                      //將資料指標指向先前搬移至記憶體之位置
@@ -379,9 +507,9 @@ void OPER_get(tDataHead* head, char target[]) {
         char FileName[20]="./Dump/";                    //路徑名稱
         strcat(FileName, target);                       //路徑名稱+檔案名稱
 
-        #ifdef _WIN32
+        #ifdef _WIN32                                  //FOR WINDOWS
         CreateDirectory("Dump", NULL);                  //創建Dump子目錄
-        #else
+        #else                                          //FOR LINUX
         if(opendir("Dump")==NULL){                      //'\Dump'存在與否 
             mkdir("Dump",0777);
         }
